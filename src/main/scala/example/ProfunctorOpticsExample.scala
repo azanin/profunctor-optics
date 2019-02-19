@@ -110,8 +110,14 @@ object Cocartesian {
         }
       )
 
-      def right[A, B, C](pab: Optics.Upstar[F, A, B]): Optics.Upstar[F, Either[C, A], Either[C, B]] =
-        ???
+      def right[A, B, C](pab: Optics.Upstar[F, A, B]): Optics.Upstar[F, Either[C, A], Either[C, B]] = Optics.Upstar(
+        (cOrA: Either[C, A]) => {
+          cOrA match {
+            case Left(c)  => Applicative[F].pure(Left(c))
+            case Right(a) => Applicative[F].map(pab.aToFb(a))(b => Right(b))
+          }
+        }
+      )
     }
   }
 }
