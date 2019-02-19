@@ -77,8 +77,41 @@ object Cartesian {
       def first[A, B, C](fab: Optics.Upstar[F, A, B]): Optics.Upstar[F, (A, C), (B, C)] =
         Optics.Upstar((tuple: (A, C)) => Functor[F].map(fab.aToFb(tuple._1))(b => (b, tuple._2)))
 
-      def second[A, B, C](fab: Optics.Upstar[F, A, B]): Optics.Upstar[F, (C, A), (C, B)] = 
-        Optics.Upstar((tuple: (C, A)) => Functor[F].map(fab.aToFb(tuple._2))(b => (tuple._1, b))) 
+      def second[A, B, C](fab: Optics.Upstar[F, A, B]): Optics.Upstar[F, (C, A), (C, B)] =
+        Optics.Upstar((tuple: (C, A)) => Functor[F].map(fab.aToFb(tuple._2))(b => (tuple._1, b)))
+    }
+  }
+}
+
+object Cocartesian {
+  import Profunctor._
+  import Profunctor.instances._
+
+  abstract class Cocartesian[P[_, _]: Profunctor] {
+    def left[A, B, C](pab: P[A, B]): P[Either[A, C], Either[B, C]]
+    def right[A, B, C](pab: P[A, B]): P[Either[C, A], Either[C, B]]
+  }
+
+  object instances {
+
+    val functionCocartesian = new Cocartesian[Function1] {
+      def left[A, B, C](pab: A => B): Either[A, C] => Either[B, C]  = _.left.map(pab)
+      def right[A, B, C](pab: A => B): Either[C, A] => Either[C, B] = _.right.map(pab)
+    }
+
+    def upstarCocartesian[F[_]: Applicative] = new Cocartesian[Optics.Upstar[F, ?, ?]] {
+
+      def left[A, B, C](pab: Optics.Upstar[F, A, B]): Optics.Upstar[F, Either[A, C], Either[B, C]] = Optics.Upstar(
+        (aOrC: Either[A, C]) => {
+          aOrC match {
+            case Left(a)  => Applicative[F].map(pab.aToFb(a))(b => Left(b))
+            case Right(c) => Applicative[F].pure(Right(c))
+          }
+        }
+      )
+
+      def right[A, B, C](pab: Optics.Upstar[F, A, B]): Optics.Upstar[F, Either[C, A], Either[C, B]] =
+        ???
     }
   }
 }
